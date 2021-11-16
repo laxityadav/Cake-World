@@ -53,7 +53,7 @@ public class AdminController {
             model.addAttribute("category", category.get());
             return "categoriesAdd";
         } else {
-            return "error page 404";
+            return "error page";
         }
     }
 }

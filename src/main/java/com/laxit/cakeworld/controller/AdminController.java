@@ -1,21 +1,29 @@
 package com.laxit.cakeworld.controller;
 
+import com.laxit.cakeworld.dto.ProductDTO;
 import com.laxit.cakeworld.model.Category;
+import com.laxit.cakeworld.model.Product;
 import com.laxit.cakeworld.service.CategoryService;
+import com.laxit.cakeworld.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Optional;
 
 @Controller
 public class AdminController {
+    public String uploadDir = System.getProperty("user.dir") + "/src/main/resources/static/productImages";
     @Autowired
     CategoryService categoryService;
+    @Autowired
+    ProductService productService;
 
     @GetMapping("/admin")
     public String adminHome() {
@@ -55,5 +63,42 @@ public class AdminController {
         } else {
             return "error page";
         }
+    }
+
+    @GetMapping("/admin/products")
+    public String getAllProducts(Model model) {
+        model.addAttribute("products", productService.getAllProduct());
+        return "products";
+    }
+
+    @GetMapping("/admin/products/add")
+    public String addProductLink(Model model) {
+        model.addAttribute("productDTO", new ProductDTO());
+        model.addAttribute("categories", categoryService.getAllCategory());
+        return "productsAdd";
+    }
+
+    @PostMapping("/admin/products/add")
+    public String addProduct(@ModelAttribute("productDTO") ProductDTO productDTO,
+                             @RequestParam("productImage")MultipartFile file,
+                             @RequestParam("imgName")String imgName) throws IOException {
+        Product product = new Product();
+        product.setId(productDTO.getId());
+        product.setName(productDTO.getName());
+        product.setCategory(categoryService.getCategoryById(productDTO.getCategoryId()).get());
+        product.setPrice(productDTO.getPrice());
+        product.setWeight(productDTO.getWeight());
+        product.setDescription(productDTO.getDescription());
+        String imageUUID;
+        if(!file.isEmpty()) {
+            imageUUID = file.getOriginalFilename();
+            Path fileNameAndPath = Paths.get(uploadDir, imageUUID);
+            Files.write(fileNameAndPath, file.getBytes());
+        } else {
+            imageUUID = imgName;
+        }
+        product.setImageName(imageUUID);
+        productService.addProduct(product);
+        return "redirect:/admin/products";
     }
 }
